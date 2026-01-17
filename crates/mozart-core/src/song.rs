@@ -222,6 +222,7 @@ impl Default for Song {
 }
 
 /// Simple timestamp generator (no external deps)
+#[cfg(not(feature = "wasm"))]
 fn chrono_lite_now() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -229,9 +230,15 @@ fn chrono_lite_now() -> String {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default();
 
-    // Convert to a simple ISO-ish format
     let secs = duration.as_secs();
-    // This is a simplified timestamp - in production you'd want proper date formatting
+    format!("{}Z", secs)
+}
+
+/// WASM-compatible timestamp generator using js_sys
+#[cfg(feature = "wasm")]
+fn chrono_lite_now() -> String {
+    let millis = js_sys::Date::now() as u64;
+    let secs = millis / 1000;
     format!("{}Z", secs)
 }
 

@@ -5,12 +5,20 @@ import type { Mozart } from './types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let wasmModule: any = null
+let initialized = false
 
 export async function initWasm(): Promise<void> {
-  if (wasmModule) return
+  if (initialized) return
 
   try {
+    // Import the WASM module
     wasmModule = await import('./pkg/mozart_core')
+
+    // Call the default export to initialize WASM
+    // This loads and instantiates the .wasm file
+    await wasmModule.default()
+
+    initialized = true
   } catch (err) {
     console.error('Failed to load WASM module:', err)
     throw err
@@ -18,7 +26,7 @@ export async function initWasm(): Promise<void> {
 }
 
 export function getMozartClass(): new () => Mozart {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return wasmModule.Mozart
@@ -30,14 +38,14 @@ export function createMozart(): Mozart {
 }
 
 export function createMozartWithTitle(title: string): Mozart {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return wasmModule.Mozart.withTitle(title)
 }
 
 export function loadMozartFromJson(json: string): Mozart {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return wasmModule.Mozart.fromJson(json)
@@ -45,42 +53,42 @@ export function loadMozartFromJson(json: string): Mozart {
 
 // Re-export utility functions
 export function getTicksPerQuarter(): number {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return wasmModule.TICKS_PER_QUARTER()
 }
 
 export function getScaleTypes(): string[] {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return JSON.parse(wasmModule.getScaleTypes())
 }
 
 export function getPitchClasses(): string[] {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return JSON.parse(wasmModule.getPitchClasses())
 }
 
 export function midiToFrequency(midi: number): number {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return wasmModule.Mozart.midiToFrequency(midi)
 }
 
 export function midiToNoteName(midi: number): string {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return wasmModule.Mozart.midiToNoteName(midi)
 }
 
 export function noteNameToMidi(name: string): number {
-  if (!wasmModule) {
+  if (!initialized) {
     throw new Error('WASM not initialized. Call initWasm() first.')
   }
   return wasmModule.Mozart.noteNameToMidi(name)
