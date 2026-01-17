@@ -24,6 +24,7 @@ export function PianoRoll() {
     removeNote,
     selectNote,
     playNotePreview,
+    seekTo,
   } = useMozartStore()
 
   const ticksPerBeat = 480
@@ -38,8 +39,18 @@ export function PianoRoll() {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Set canvas size
-    const width = container.clientWidth
+    // Calculate content width based on notes (minimum 8 measures, expand as needed)
+    const minMeasures = 8
+    const maxNoteTick = notes.length > 0
+      ? Math.max(...notes.map((n) => n.start_tick + n.duration_ticks))
+      : 0
+    const contentMeasures = Math.ceil(maxNoteTick / ticksPerMeasure) + 2 // Add 2 measures of padding
+    const totalMeasures = Math.max(minMeasures, contentMeasures)
+    const totalTicks = totalMeasures * ticksPerMeasure
+
+    // Set canvas size - width based on content, not container
+    const contentWidth = PIANO_KEY_WIDTH + totalTicks * TICK_WIDTH
+    const width = Math.max(container.clientWidth, contentWidth)
     const height = TOTAL_KEYS * NOTE_HEIGHT
     canvas.width = width
     canvas.height = height
@@ -69,11 +80,8 @@ export function PianoRoll() {
     }
 
     // Draw vertical lines (beat grid)
-    const totalTicks = Math.max(ticksPerMeasure * 8, ...notes.map((n) => n.start_tick + n.duration_ticks))
-
     for (let tick = 0; tick <= totalTicks; tick += ticksPerBeat / 4) {
       const x = PIANO_KEY_WIDTH + tick * TICK_WIDTH
-      if (x > width) break
 
       const isMeasure = tick % ticksPerMeasure === 0
       const isBeat = tick % ticksPerBeat === 0
@@ -108,17 +116,15 @@ export function PianoRoll() {
       ctx.strokeRect(x, y + 1, noteWidth - 1, NOTE_HEIGHT - 2)
     })
 
-    // Draw playhead
-    if (playbackState !== 'stopped') {
-      const playheadX = PIANO_KEY_WIDTH + currentTick * TICK_WIDTH
-      ctx.strokeStyle = '#e94560'
-      ctx.lineWidth = 2
-      ctx.beginPath()
-      ctx.moveTo(playheadX, 0)
-      ctx.lineTo(playheadX, height)
-      ctx.stroke()
-      ctx.lineWidth = 1
-    }
+    // Draw playhead (always visible, brighter when playing)
+    const playheadX = PIANO_KEY_WIDTH + currentTick * TICK_WIDTH
+    ctx.strokeStyle = playbackState === 'playing' ? '#e94560' : '#994040'
+    ctx.lineWidth = 2
+    ctx.beginPath()
+    ctx.moveTo(playheadX, 0)
+    ctx.lineTo(playheadX, height)
+    ctx.stroke()
+    ctx.lineWidth = 1
 
     // Draw piano keys
     for (let i = 0; i < TOTAL_KEYS; i++) {
@@ -203,6 +209,14 @@ export function PianoRoll() {
 
     const tick = Math.floor((x - PIANO_KEY_WIDTH) / TICK_WIDTH)
     const pitch = MAX_PITCH - Math.floor(y / NOTE_HEIGHT)
+
+    // Alt+click to set playback position
+    if (e.altKey) {
+      const snapTicks = ticksPerBeat
+      const snappedTick = Math.floor(tick / snapTicks) * snapTicks
+      seekTo(snappedTick)
+      return
+    }
 
     if (pitch < MIN_PITCH || pitch > MAX_PITCH) return
 
