@@ -14,6 +14,7 @@ export function Transport() {
     setTempo,
     setTimeSignature,
     toggleMetronome,
+    clearNotes,
   } = useMozartStore()
 
   const handleTempoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,6 +63,13 @@ export function Transport() {
           onClick={toggleMetronome}
         >
           Metro
+        </button>
+
+        <button
+          style={styles.clearButton}
+          onClick={clearNotes}
+        >
+          Clear
         </button>
       </div>
 
@@ -147,6 +155,15 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 'bold',
+  },
+  clearButton: {
+    padding: '8px 16px',
+    background: '#4a1a2e',
+    border: 'none',
+    borderRadius: '4px',
+    color: '#eee',
+    cursor: 'pointer',
+    fontSize: '14px',
   },
   position: {
     display: 'flex',
