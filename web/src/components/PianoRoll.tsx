@@ -134,8 +134,8 @@ export function PianoRoll() {
       ctx.strokeStyle = '#000'
       ctx.strokeRect(0, y, PIANO_KEY_WIDTH - 2, NOTE_HEIGHT)
 
-      // Note name (only on C notes)
-      if (pitch % 12 === 0 && isWasmLoaded) {
+      // Note name (on all white keys)
+      if (!isBlackKey && isWasmLoaded) {
         ctx.fillStyle = '#000'
         ctx.font = '10px sans-serif'
         ctx.fillText(midiToNoteName(pitch), 4, y + NOTE_HEIGHT - 3)
