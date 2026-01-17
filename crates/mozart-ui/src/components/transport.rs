@@ -32,33 +32,33 @@ pub fn Transport() -> impl IntoView {
     let state_play = state.clone();
     let on_play = move |_| {
         let state = state_play.clone();
-        leptos::task::spawn_local(async move {
-            if let Err(e) = tauri::play().await {
-                state.show_error(format!("Play failed: {}", e));
-            }
-            state.playback_state.set("playing".to_string());
+        // Update playback with current notes and tempo
+        let notes = state.notes.get();
+        let tempo = state.song_info.get().map(|i| i.tempo).unwrap_or(120);
+        state.playback.set_notes(notes);
+        state.playback.set_tempo(tempo);
+
+        let playback_state = state.playback_state;
+        state.playback.play(move |playing| {
+            playback_state.set(if playing { "playing" } else { "stopped" }.to_string());
         });
     };
 
     let state_pause = state.clone();
     let on_pause = move |_| {
         let state = state_pause.clone();
-        leptos::task::spawn_local(async move {
-            if let Err(e) = tauri::pause().await {
-                state.show_error(format!("Pause failed: {}", e));
-            }
-            state.playback_state.set("paused".to_string());
+        let playback_state = state.playback_state;
+        state.playback.pause(move |_| {
+            playback_state.set("paused".to_string());
         });
     };
 
     let state_stop = state.clone();
     let on_stop = move |_| {
         let state = state_stop.clone();
-        leptos::task::spawn_local(async move {
-            if let Err(e) = tauri::stop().await {
-                state.show_error(format!("Stop failed: {}", e));
-            }
-            state.playback_state.set("stopped".to_string());
+        let playback_state = state.playback_state;
+        state.playback.stop(move |_| {
+            playback_state.set("stopped".to_string());
         });
     };
 

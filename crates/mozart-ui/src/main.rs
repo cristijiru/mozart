@@ -5,6 +5,7 @@
 mod app;
 pub mod audio;
 mod components;
+pub mod playback;
 mod tauri;
 
 use leptos::prelude::*;

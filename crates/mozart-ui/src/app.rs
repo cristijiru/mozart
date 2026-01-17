@@ -1,17 +1,19 @@
 //! Main App Component
 
 use crate::components::*;
+use crate::playback::Playback;
 use crate::tauri::{self, NoteData, SongInfo};
 use leptos::prelude::*;
 
 /// Main application state
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct AppState {
     pub song_info: RwSignal<Option<SongInfo>>,
     pub notes: RwSignal<Vec<NoteData>>,
     pub playback_state: RwSignal<String>,
     pub selected_tab: RwSignal<Tab>,
     pub error_message: RwSignal<Option<String>>,
+    pub playback: Playback,
 }
 
 impl AppState {
@@ -22,6 +24,7 @@ impl AppState {
             playback_state: RwSignal::new("stopped".to_string()),
             selected_tab: RwSignal::new(Tab::PianoRoll),
             error_message: RwSignal::new(None),
+            playback: Playback::new(),
         }
     }
 
