@@ -188,8 +188,29 @@ pub fn transpose_pitch_diatonic(
         MozartError::TranspositionError(format!("Invalid degree {} in target scale", new_degree))
     })?;
 
-    // Calculate new octave
-    let new_octave = octave + octave_change as i8 + octave_adjustment;
+    // Calculate octave change based on actual pitch movement
+    // We need to account for:
+    // 1. Complete scale cycles (every 7 degrees = 1 octave)
+    // 2. Crossing the octave boundary (C) within a scale cycle
+    let old_semitones = pc.semitones() as i16;
+    let new_semitones = new_pc.semitones() as i16;
+
+    // Count complete octaves from degree movement
+    let full_octaves = degrees / 7;
+
+    // Check if remaining movement crosses the C boundary (semitone 0)
+    let remaining_degrees = degrees % 7;
+    let boundary_cross = if remaining_degrees > 0 {
+        // Moving up: crossed if new semitone is less than old (wrapped past C)
+        if new_semitones < old_semitones { 1 } else { 0 }
+    } else if remaining_degrees < 0 {
+        // Moving down: crossed if new semitone is greater than old (wrapped past C going down)
+        if new_semitones > old_semitones { -1 } else { 0 }
+    } else {
+        0
+    };
+
+    let new_octave = octave + full_octaves as i8 + boundary_cross + octave_adjustment;
 
     tracing::debug!(
         "Result: degree {} in {} = {}{} (octave {})",
@@ -357,6 +378,30 @@ mod tests {
         let result = transpose_pitch_diatonic(c4, &c_major, &c_major, -2).unwrap();
         assert_eq!(result.pitch_class(), PitchClass::A);
         assert_eq!(result.octave(), 3);
+    }
+
+    #[test]
+    fn test_diatonic_transpose_a_minor_octave_crossing() {
+        // Test the bug fix: A4 up a third in A minor should be C5, not C4
+        let a_minor = Scale::a_minor();
+
+        // A4 up a third in A minor = C5 (crosses octave within scale)
+        let a4 = Pitch::new(PitchClass::A, 4).unwrap();
+        let result = transpose_pitch_diatonic(a4, &a_minor, &a_minor, 2).unwrap();
+        assert_eq!(result.pitch_class(), PitchClass::C);
+        assert_eq!(result.octave(), 5); // Must be 5, not 4!
+
+        // G4 up a third in A minor = B4 (no octave crossing)
+        let g4 = Pitch::new(PitchClass::G, 4).unwrap();
+        let result = transpose_pitch_diatonic(g4, &a_minor, &a_minor, 2).unwrap();
+        assert_eq!(result.pitch_class(), PitchClass::B);
+        assert_eq!(result.octave(), 4);
+
+        // C5 down a third in A minor = A4 (crosses octave going down)
+        let c5 = Pitch::new(PitchClass::C, 5).unwrap();
+        let result = transpose_pitch_diatonic(c5, &a_minor, &a_minor, -2).unwrap();
+        assert_eq!(result.pitch_class(), PitchClass::A);
+        assert_eq!(result.octave(), 4);
     }
 
     #[test]
