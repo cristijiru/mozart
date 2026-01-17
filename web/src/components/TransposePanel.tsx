@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useMozartStore } from '../store'
 
 export function TransposePanel() {
   const { key, setKey, transposeChromatic, transposeDiatonic } = useMozartStore()
+  const [keepOriginal, setKeepOriginal] = useState(false)
 
   // Parse current key into root and scale type
   const keyParts = key.split(' ')
@@ -43,16 +44,16 @@ export function TransposePanel() {
       <div style={styles.section}>
         <h3 style={styles.title}>Chromatic</h3>
         <div style={styles.buttons}>
-          <button style={styles.button} onClick={() => transposeChromatic(-12)}>
+          <button style={styles.button} onClick={() => transposeChromatic(-12, keepOriginal)}>
             -Oct
           </button>
-          <button style={styles.button} onClick={() => transposeChromatic(-1)}>
+          <button style={styles.button} onClick={() => transposeChromatic(-1, keepOriginal)}>
             -1
           </button>
-          <button style={styles.button} onClick={() => transposeChromatic(1)}>
+          <button style={styles.button} onClick={() => transposeChromatic(1, keepOriginal)}>
             +1
           </button>
-          <button style={styles.button} onClick={() => transposeChromatic(12)}>
+          <button style={styles.button} onClick={() => transposeChromatic(12, keepOriginal)}>
             +Oct
           </button>
         </div>
@@ -61,26 +62,35 @@ export function TransposePanel() {
       <div style={styles.section}>
         <h3 style={styles.title}>Diatonic</h3>
         <div style={styles.buttons}>
-          <button style={styles.button} onClick={() => transposeDiatonic(-7)}>
+          <button style={styles.button} onClick={() => transposeDiatonic(-7, keepOriginal)}>
             -Oct
           </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(-2)}>
+          <button style={styles.button} onClick={() => transposeDiatonic(-2, keepOriginal)}>
             -3rd
           </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(-1)}>
+          <button style={styles.button} onClick={() => transposeDiatonic(-1, keepOriginal)}>
             -1
           </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(1)}>
+          <button style={styles.button} onClick={() => transposeDiatonic(1, keepOriginal)}>
             +1
           </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(2)}>
+          <button style={styles.button} onClick={() => transposeDiatonic(2, keepOriginal)}>
             +3rd
           </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(7)}>
+          <button style={styles.button} onClick={() => transposeDiatonic(7, keepOriginal)}>
             +Oct
           </button>
         </div>
       </div>
+
+      <label style={styles.checkbox}>
+        <input
+          type="checkbox"
+          checked={keepOriginal}
+          onChange={(e) => setKeepOriginal(e.target.checked)}
+        />
+        Keep original
+      </label>
     </div>
   )
 }
@@ -134,5 +144,14 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#eee',
     cursor: 'pointer',
     fontSize: '13px',
+  },
+  checkbox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    color: '#aaa',
+    fontSize: '13px',
+    cursor: 'pointer',
+    marginLeft: 'auto',
   },
 }

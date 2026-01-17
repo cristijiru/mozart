@@ -58,8 +58,8 @@ interface MozartState {
   cycleAccent: (beat: number) => void
 
   // Transposition
-  transposeChromatic: (semitones: number) => void
-  transposeDiatonic: (degrees: number) => void
+  transposeChromatic: (semitones: number, keepOriginal?: boolean) => void
+  transposeDiatonic: (degrees: number, keepOriginal?: boolean) => void
 
   // Playback actions
   play: () => void
@@ -300,24 +300,46 @@ export const useMozartStore = create<MozartState>((set, get) => ({
   },
 
   // Transposition
-  transposeChromatic: (semitones) => {
-    const { mozart } = get()
+  transposeChromatic: (semitones, keepOriginal = false) => {
+    const { mozart, notes } = get()
     if (!mozart) return
 
     try {
+      // Save original notes if keeping them
+      const originalNotes = keepOriginal ? [...notes] : []
+
       mozart.transposeChromatic(semitones)
+
+      // Add back original notes
+      if (keepOriginal) {
+        for (const note of originalNotes) {
+          mozart.addNoteWithVelocity(note.pitch, note.start_tick, note.duration_ticks, note.velocity)
+        }
+      }
+
       get().syncFromWasm()
     } catch (err) {
       console.error('Failed to transpose:', err)
     }
   },
 
-  transposeDiatonic: (degrees) => {
-    const { mozart } = get()
+  transposeDiatonic: (degrees, keepOriginal = false) => {
+    const { mozart, notes } = get()
     if (!mozart) return
 
     try {
+      // Save original notes if keeping them
+      const originalNotes = keepOriginal ? [...notes] : []
+
       mozart.transposeDiatonic(degrees)
+
+      // Add back original notes
+      if (keepOriginal) {
+        for (const note of originalNotes) {
+          mozart.addNoteWithVelocity(note.pitch, note.start_tick, note.duration_ticks, note.velocity)
+        }
+      }
+
       get().syncFromWasm()
     } catch (err) {
       console.error('Failed to transpose:', err)
