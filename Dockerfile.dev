@@ -1,0 +1,47 @@
+# Development Dockerfile with hot reload
+# Builds WASM once, then runs Vite dev server
+
+# ============================================
+# Stage 1: Build WASM
+# ============================================
+FROM rust:1.83-slim AS wasm-builder
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    pkg-config \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+RUN rustup target add wasm32-unknown-unknown
+
+WORKDIR /app
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates/mozart-core ./crates/mozart-core
+
+WORKDIR /app/crates/mozart-core
+RUN wasm-pack build --target web --features wasm
+
+# ============================================
+# Stage 2: Dev Server
+# ============================================
+FROM node:20-slim
+
+WORKDIR /app
+
+# Copy package files and install
+COPY web/package.json web/package-lock.json* ./
+RUN npm install
+
+# Copy web source
+COPY web/ ./
+
+# Copy WASM from builder
+COPY --from=wasm-builder /app/crates/mozart-core/pkg ./src/wasm/pkg
+
+# Expose Vite dev server port
+EXPOSE 5173
+
+# Run dev server with host binding for Docker
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

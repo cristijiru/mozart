@@ -1,0 +1,33 @@
+# Git
+.git
+.gitignore
+
+# Rust build artifacts
+target/
+**/*.rs.bk
+
+# Node modules (will be installed in container)
+web/node_modules/
+web/dist/
+
+# WASM build output (will be built in container)
+web/src/wasm/pkg/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+*.mozart.json
+*.mid
