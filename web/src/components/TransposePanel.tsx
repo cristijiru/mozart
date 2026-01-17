@@ -65,17 +65,29 @@ export function TransposePanel() {
           <button style={styles.button} onClick={() => transposeDiatonic(-7, keepOriginal)}>
             -Oct
           </button>
+          <button style={styles.button} onClick={() => transposeDiatonic(-4, keepOriginal)}>
+            -5th
+          </button>
+          <button style={styles.button} onClick={() => transposeDiatonic(-3, keepOriginal)}>
+            -4th
+          </button>
           <button style={styles.button} onClick={() => transposeDiatonic(-2, keepOriginal)}>
             -3rd
           </button>
           <button style={styles.button} onClick={() => transposeDiatonic(-1, keepOriginal)}>
-            -1
+            -2nd
           </button>
           <button style={styles.button} onClick={() => transposeDiatonic(1, keepOriginal)}>
-            +1
+            +2nd
           </button>
           <button style={styles.button} onClick={() => transposeDiatonic(2, keepOriginal)}>
             +3rd
+          </button>
+          <button style={styles.button} onClick={() => transposeDiatonic(3, keepOriginal)}>
+            +4th
+          </button>
+          <button style={styles.button} onClick={() => transposeDiatonic(4, keepOriginal)}>
+            +5th
           </button>
           <button style={styles.button} onClick={() => transposeDiatonic(7, keepOriginal)}>
             +Oct
