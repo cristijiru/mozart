@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useMozartStore } from '../store'
 
 export function TransposePanel() {
-  const { key, setKey, transposeChromatic, transposeDiatonic } = useMozartStore()
+  const { key, setKey, transposeChromatic, transposeDiatonic, invert, notes } = useMozartStore()
   const [keepOriginal, setKeepOriginal] = useState(false)
 
   // Parse current key into root and scale type
@@ -13,12 +13,65 @@ export function TransposePanel() {
   const roots = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
   const scaleTypes = ['Major', 'Natural Minor', 'Harmonic Minor', 'Melodic Minor', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Locrian']
 
+  const chromaticOptions = [
+    { label: '-Oct', value: -12 },
+    { label: '-5th', value: -7 },
+    { label: '-4th', value: -5 },
+    { label: '-3rd', value: -4 },
+    { label: '-2nd', value: -2 },
+    { label: '-1', value: -1 },
+    { label: '+1', value: 1 },
+    { label: '+2nd', value: 2 },
+    { label: '+3rd', value: 4 },
+    { label: '+4th', value: 5 },
+    { label: '+5th', value: 7 },
+    { label: '+Oct', value: 12 },
+  ]
+
+  const diatonicOptions = [
+    { label: '-Oct', value: -7 },
+    { label: '-6th', value: -5 },
+    { label: '-5th', value: -4 },
+    { label: '-4th', value: -3 },
+    { label: '-3rd', value: -2 },
+    { label: '-2nd', value: -1 },
+    { label: '+2nd', value: 1 },
+    { label: '+3rd', value: 2 },
+    { label: '+4th', value: 3 },
+    { label: '+5th', value: 4 },
+    { label: '+6th', value: 5 },
+    { label: '+Oct', value: 7 },
+  ]
+
   const handleRootChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setKey(`${e.target.value} ${currentScaleType}`)
   }
 
   const handleScaleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setKey(`${currentRoot} ${e.target.value}`)
+  }
+
+  const handleChromatic = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = parseInt(e.target.value)
+    if (!isNaN(value)) {
+      transposeChromatic(value, keepOriginal)
+    }
+    e.target.value = '' // Reset to placeholder
+  }
+
+  const handleDiatonic = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = parseInt(e.target.value)
+    if (!isNaN(value)) {
+      transposeDiatonic(value, keepOriginal)
+    }
+    e.target.value = '' // Reset to placeholder
+  }
+
+  const handleInvert = () => {
+    if (notes.length === 0) return
+    // Use the average pitch as the pivot point
+    const avgPitch = Math.round(notes.reduce((sum, n) => sum + n.pitch, 0) / notes.length)
+    invert(avgPitch, keepOriginal)
   }
 
   return (
@@ -43,56 +96,37 @@ export function TransposePanel() {
 
       <div style={styles.section}>
         <h3 style={styles.title}>Chromatic</h3>
-        <div style={styles.buttons}>
-          <button style={styles.button} onClick={() => transposeChromatic(-12, keepOriginal)}>
-            -Oct
-          </button>
-          <button style={styles.button} onClick={() => transposeChromatic(-1, keepOriginal)}>
-            -1
-          </button>
-          <button style={styles.button} onClick={() => transposeChromatic(1, keepOriginal)}>
-            +1
-          </button>
-          <button style={styles.button} onClick={() => transposeChromatic(12, keepOriginal)}>
-            +Oct
-          </button>
-        </div>
+        <select onChange={handleChromatic} style={styles.select} defaultValue="">
+          <option value="" disabled>
+            ...
+          </option>
+          {chromaticOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div style={styles.section}>
         <h3 style={styles.title}>Diatonic</h3>
-        <div style={styles.buttons}>
-          <button style={styles.button} onClick={() => transposeDiatonic(-7, keepOriginal)}>
-            -Oct
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(-4, keepOriginal)}>
-            -5th
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(-3, keepOriginal)}>
-            -4th
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(-2, keepOriginal)}>
-            -3rd
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(-1, keepOriginal)}>
-            -2nd
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(1, keepOriginal)}>
-            +2nd
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(2, keepOriginal)}>
-            +3rd
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(3, keepOriginal)}>
-            +4th
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(4, keepOriginal)}>
-            +5th
-          </button>
-          <button style={styles.button} onClick={() => transposeDiatonic(7, keepOriginal)}>
-            +Oct
-          </button>
-        </div>
+        <select onChange={handleDiatonic} style={styles.select} defaultValue="">
+          <option value="" disabled>
+            ...
+          </option>
+          {diatonicOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div style={styles.section}>
+        <h3 style={styles.title}>Transform</h3>
+        <button style={styles.button} onClick={handleInvert}>
+          Invert
+        </button>
       </div>
 
       <label style={styles.checkbox}>
@@ -114,11 +148,13 @@ const styles: Record<string, React.CSSProperties> = {
     padding: '12px 20px',
     background: '#16213e',
     borderTop: '1px solid #0f3460',
+    flexWrap: 'wrap',
+    alignItems: 'center',
   },
   section: {
     display: 'flex',
     alignItems: 'center',
-    gap: '12px',
+    gap: '8px',
   },
   title: {
     margin: 0,
@@ -133,7 +169,8 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '4px',
     color: '#fff',
     fontSize: '14px',
-    minWidth: '60px',
+    minWidth: '70px',
+    cursor: 'pointer',
   },
   selectWide: {
     padding: '6px 12px',
@@ -143,10 +180,6 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#fff',
     fontSize: '14px',
     minWidth: '140px',
-  },
-  buttons: {
-    display: 'flex',
-    gap: '4px',
   },
   button: {
     padding: '6px 12px',

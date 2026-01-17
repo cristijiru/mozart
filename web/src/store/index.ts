@@ -60,6 +60,7 @@ interface MozartState {
   // Transposition
   transposeChromatic: (semitones: number, keepOriginal?: boolean) => void
   transposeDiatonic: (degrees: number, keepOriginal?: boolean) => void
+  invert: (pivot: number, keepOriginal?: boolean) => void
 
   // Playback actions
   play: () => void
@@ -343,6 +344,29 @@ export const useMozartStore = create<MozartState>((set, get) => ({
       get().syncFromWasm()
     } catch (err) {
       console.error('Failed to transpose:', err)
+    }
+  },
+
+  invert: (pivot, keepOriginal = false) => {
+    const { mozart, notes } = get()
+    if (!mozart) return
+
+    try {
+      // Save original notes if keeping them
+      const originalNotes = keepOriginal ? [...notes] : []
+
+      mozart.invert(pivot)
+
+      // Add back original notes
+      if (keepOriginal) {
+        for (const note of originalNotes) {
+          mozart.addNoteWithVelocity(note.pitch, note.start_tick, note.duration_ticks, note.velocity)
+        }
+      }
+
+      get().syncFromWasm()
+    } catch (err) {
+      console.error('Failed to invert:', err)
     }
   },
 

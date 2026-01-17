@@ -236,6 +236,23 @@ impl Mozart {
         Ok(())
     }
 
+    /// Invert all notes around a pivot pitch (mirror reflection)
+    /// new_pitch = 2 * pivot - old_pitch
+    #[wasm_bindgen(js_name = invert)]
+    pub fn invert(&mut self, pivot: u8) -> Result<(), JsValue> {
+        for note in &mut self.song.notes {
+            let new_pitch = (2 * pivot as i16) - (note.pitch as i16);
+            if new_pitch < 0 || new_pitch > 127 {
+                return Err(JsValue::from_str(&format!(
+                    "Inversion would put note out of MIDI range (pivot: {}, original: {}, result: {})",
+                    pivot, note.pitch, new_pitch
+                )));
+            }
+            note.pitch = new_pitch as u8;
+        }
+        Ok(())
+    }
+
     // ==================== Accents ====================
 
     /// Get the accent pattern as an array of levels (1=weak, 2=medium, 3=strong)
