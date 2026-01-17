@@ -38,6 +38,7 @@ export interface Mozart {
   transposeChromatic(semitones: number): void
   transposeDiatonic(degrees: number): void
   transposeDiatonicWithKeyChange(targetKey: string, degrees: number): void
+  invert(pivot: number): void
 
   // Accents
   getAccents(): Uint8Array
