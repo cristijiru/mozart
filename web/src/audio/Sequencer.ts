@@ -74,14 +74,11 @@ export class Sequencer {
 
     this.audioEngine.resume()
 
-    if (this.state === 'paused') {
-      // Resume from paused position
-      this.startTime = this.audioEngine.currentTime - this.tickToSeconds(this.pausedTick)
-      this.currentTick = this.pausedTick
-    } else {
-      // Start from beginning
-      this.startTime = this.audioEngine.currentTime
-      this.currentTick = 0
+    // Start from current position (pausedTick holds the seek position)
+    this.startTime = this.audioEngine.currentTime - this.tickToSeconds(this.pausedTick)
+    this.currentTick = this.pausedTick
+
+    if (this.state === 'stopped') {
       this.scheduledNotes.clear()
     }
 

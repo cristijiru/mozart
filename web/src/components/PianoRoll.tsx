@@ -25,6 +25,8 @@ export function PianoRoll() {
     selectNote,
     playNotePreview,
     seekTo,
+    play,
+    pause,
   } = useMozartStore()
 
   const ticksPerBeat = 480
@@ -175,9 +177,21 @@ export function PianoRoll() {
     return () => cancelAnimationFrame(animationId)
   }, [playbackState, draw])
 
-  // Handle keyboard events for note deletion
+  // Handle keyboard events
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Space to toggle play/pause
+      if (e.key === ' ' && e.target === document.body) {
+        e.preventDefault()
+        if (playbackState === 'playing') {
+          pause()
+        } else {
+          play()
+        }
+        return
+      }
+
+      // Backspace to delete selected note
       if (e.key === 'Backspace' && selectedNoteIndex !== null) {
         e.preventDefault()
         removeNote(selectedNoteIndex)
@@ -186,7 +200,7 @@ export function PianoRoll() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [selectedNoteIndex, removeNote])
+  }, [selectedNoteIndex, removeNote, playbackState, play, pause])
 
   // Handle click to add/select notes
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
