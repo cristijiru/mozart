@@ -4,7 +4,7 @@ import { useMozartStore } from '../store'
 export function TextInput() {
   const [input, setInput] = useState('')
   const [error, setError] = useState('')
-  const { parseMelody, clearNotes } = useMozartStore()
+  const { parseMelody, formatMelody, clearNotes } = useMozartStore()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -14,10 +14,17 @@ export function TextInput() {
 
     try {
       clearNotes()
-      const count = parseMelody(input.trim())
-      if (count > 0) {
-        setInput('')
-      }
+      parseMelody(input.trim())
+    } catch (err) {
+      setError(String(err))
+    }
+  }
+
+  const handleToText = () => {
+    setError('')
+    try {
+      const text = formatMelody()
+      setInput(text)
     } catch (err) {
       setError(String(err))
     }
@@ -36,8 +43,11 @@ export function TextInput() {
             style={styles.input}
           />
         </label>
+        <button type="button" onClick={handleToText} style={styles.secondaryButton}>
+          To Text
+        </button>
         <button type="submit" style={styles.button}>
-          Parse
+          To Notes
         </button>
       </form>
 
@@ -102,6 +112,15 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 'bold',
+  },
+  secondaryButton: {
+    padding: '10px 20px',
+    background: '#0f3460',
+    border: 'none',
+    borderRadius: '4px',
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: '14px',
   },
   error: {
     marginTop: '8px',

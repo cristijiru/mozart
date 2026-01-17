@@ -47,6 +47,7 @@ interface MozartState {
   removeNote: (index: number) => void
   clearNotes: () => void
   parseMelody: (melody: string) => number
+  formatMelody: () => string
   selectNote: (index: number | null) => void
 
   // Settings actions
@@ -217,6 +218,18 @@ export const useMozartStore = create<MozartState>((set, get) => ({
     } catch (err) {
       console.error('Failed to parse melody:', err)
       return 0
+    }
+  },
+
+  formatMelody: () => {
+    const { mozart } = get()
+    if (!mozart) return ''
+
+    try {
+      return mozart.formatMelody()
+    } catch (err) {
+      console.error('Failed to format melody:', err)
+      return ''
     }
   },
 
