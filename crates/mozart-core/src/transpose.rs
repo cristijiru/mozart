@@ -259,6 +259,9 @@ pub fn transpose_notes(notes: &[Note], mode: &TransposeMode) -> Result<Vec<Note>
 }
 
 /// Analyze a melody to suggest likely scale
+/// Only considers Major and Natural Minor scales.
+/// Prefers minor over major when ambiguous.
+/// Prefers scales where the root matches the last note.
 pub fn detect_scale(notes: &[Note]) -> Option<Scale> {
     if notes.is_empty() {
         return None;
@@ -272,16 +275,29 @@ pub fn detect_scale(notes: &[Note]) -> Option<Scale> {
         }
     }
 
+    // Get the last note's pitch class for tiebreaking
+    let last_note_pc = notes.last()
+        .and_then(|n| Pitch::from_midi(n.pitch).ok())
+        .map(|p| p.pitch_class().semitones());
+
     tracing::debug!(
-        "Detecting scale from pitch classes: {:?}",
-        pitch_classes
+        "Detecting scale from pitch classes: {:?}, last note: {:?}",
+        pitch_classes,
+        last_note_pc
     );
 
-    // Try each possible root and scale type
-    let mut best_match: Option<(Scale, usize)> = None;
+    // Only consider Major and Natural Minor
+    let scale_types = [
+        crate::scale::ScaleType::NaturalMinor, // Minor first (preferred)
+        crate::scale::ScaleType::Major,
+    ];
+
+    // Score: (matches_all, last_note_is_root, is_minor, match_count)
+    // Higher is better, compared lexicographically
+    let mut best_match: Option<(Scale, (bool, bool, bool, usize))> = None;
 
     for root in PitchClass::all() {
-        for scale_type in crate::scale::ScaleType::all() {
+        for scale_type in &scale_types {
             let scale = Scale::new(root, *scale_type);
             let scale_pcs: std::collections::HashSet<u8> = scale
                 .pitch_classes()
@@ -292,22 +308,20 @@ pub fn detect_scale(notes: &[Note]) -> Option<Scale> {
             // Count how many of the melody's notes are in this scale
             let matches = pitch_classes.intersection(&scale_pcs).count();
             let total = pitch_classes.len();
+            let matches_all = matches == total;
+            let last_note_is_root = last_note_pc == Some(root.semitones());
+            let is_minor = *scale_type == crate::scale::ScaleType::NaturalMinor;
 
-            // Prefer scales that contain all the notes
-            if matches == total {
-                // All notes fit in this scale
-                let score = matches * 10; // Bonus for perfect fit
-                if best_match.is_none() || score > best_match.as_ref().unwrap().1 {
-                    best_match = Some((scale, score));
-                }
-            } else if best_match.is_none() || matches > best_match.as_ref().unwrap().1 {
-                best_match = Some((scale, matches));
+            let score = (matches_all, last_note_is_root, is_minor, matches);
+
+            if best_match.is_none() || score > best_match.as_ref().unwrap().1 {
+                best_match = Some((scale, score));
             }
         }
     }
 
     best_match.map(|(scale, score)| {
-        tracing::info!("Detected scale: {} (score: {})", scale, score);
+        tracing::info!("Detected scale: {} (score: {:?})", scale, score);
         scale
     })
 }

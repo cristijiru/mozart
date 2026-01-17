@@ -177,6 +177,12 @@ impl Mozart {
         let notes = parse_melody(melody)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
         let count = notes.len();
+
+        // Auto-detect key from the melody
+        if let Some(detected_scale) = crate::transpose::detect_scale(&notes) {
+            self.song.set_key(detected_scale);
+        }
+
         self.song.add_notes(notes);
         Ok(count)
     }
