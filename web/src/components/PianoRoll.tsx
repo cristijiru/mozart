@@ -169,6 +169,19 @@ export function PianoRoll() {
     return () => cancelAnimationFrame(animationId)
   }, [playbackState, draw])
 
+  // Handle keyboard events for note deletion
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Backspace' && selectedNoteIndex !== null) {
+        e.preventDefault()
+        removeNote(selectedNoteIndex)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [selectedNoteIndex, removeNote])
+
   // Handle click to add/select notes
   const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current
