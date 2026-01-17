@@ -21,3 +21,24 @@ target
 #.idea/
 
 .vscode/
+
+.claude/settings.local.json
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Frontend build
+dist/
+.trunk/
+
+# Sample files
+assets/samples/*.wav
+
+# Test output
+*.mozart.json
+*.mid
+
+# OS files
+.DS_Store
+Thumbs.db

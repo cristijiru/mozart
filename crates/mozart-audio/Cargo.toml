@@ -1,0 +1,16 @@
+[package]
+name = "mozart-audio"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Audio playback engine for Mozart - sample playback, metronome, and transport controls"
+
+[dependencies]
+mozart-core = { path = "../mozart-core" }
+tracing.workspace = true
+tracing-subscriber.workspace = true
+rodio.workspace = true
+hound.workspace = true
+thiserror.workspace = true
+parking_lot = "0.12"
