@@ -4,25 +4,37 @@ import { useMozartStore } from '../store'
 export function TransposePanel() {
   const { key, setKey, transposeChromatic, transposeDiatonic } = useMozartStore()
 
-  const handleKeyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setKey(e.target.value)
+  // Parse current key into root and scale type
+  const keyParts = key.split(' ')
+  const currentRoot = keyParts[0] || 'C'
+  const currentScaleType = keyParts.slice(1).join(' ') || 'Major'
+
+  const roots = ['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+  const scaleTypes = ['Major', 'Natural Minor', 'Harmonic Minor', 'Melodic Minor', 'Dorian', 'Phrygian', 'Lydian', 'Mixolydian', 'Locrian']
+
+  const handleRootChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setKey(`${e.target.value} ${currentScaleType}`)
   }
 
-  const keys = [
-    'C Major', 'G Major', 'D Major', 'A Major', 'E Major', 'B Major',
-    'F Major', 'Bb Major', 'Eb Major', 'Ab Major',
-    'A Minor', 'E Minor', 'B Minor', 'F# Minor',
-    'D Minor', 'G Minor', 'C Minor', 'F Minor',
-  ]
+  const handleScaleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setKey(`${currentRoot} ${e.target.value}`)
+  }
 
   return (
     <div style={styles.container}>
       <div style={styles.section}>
         <h3 style={styles.title}>Key</h3>
-        <select value={key} onChange={handleKeyChange} style={styles.select}>
-          {keys.map((k) => (
-            <option key={k} value={k}>
-              {k}
+        <select value={currentRoot} onChange={handleRootChange} style={styles.select}>
+          {roots.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
+        <select value={currentScaleType} onChange={handleScaleTypeChange} style={styles.selectWide}>
+          {scaleTypes.map((s) => (
+            <option key={s} value={s}>
+              {s}
             </option>
           ))}
         </select>
@@ -93,7 +105,16 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '4px',
     color: '#fff',
     fontSize: '14px',
-    minWidth: '120px',
+    minWidth: '60px',
+  },
+  selectWide: {
+    padding: '6px 12px',
+    background: '#1a1a2e',
+    border: '1px solid #0f3460',
+    borderRadius: '4px',
+    color: '#fff',
+    fontSize: '14px',
+    minWidth: '140px',
   },
   buttons: {
     display: 'flex',
