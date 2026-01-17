@@ -141,6 +141,12 @@ impl Mozart {
         self.song.add_note(Note::with_velocity(pitch, start_tick, duration_ticks, velocity));
     }
 
+    /// Add a note with velocity and voice
+    #[wasm_bindgen(js_name = addNoteWithVoice)]
+    pub fn add_note_with_voice(&mut self, pitch: u8, start_tick: u32, duration_ticks: u32, velocity: u8, voice: u8) {
+        self.song.add_note(Note::with_voice(pitch, start_tick, duration_ticks, velocity, voice));
+    }
+
     /// Remove a note at index
     #[wasm_bindgen(js_name = removeNote)]
     pub fn remove_note(&mut self, index: usize) -> bool {

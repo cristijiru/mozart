@@ -244,6 +244,7 @@ pub fn transpose_note(note: &Note, mode: &TransposeMode) -> Result<Note> {
         start_tick: note.start_tick,
         duration_ticks: note.duration_ticks,
         velocity: note.velocity,
+        voice: note.voice,
     })
 }
 

@@ -5,6 +5,7 @@ export interface Note {
   start_tick: number
   duration_ticks: number
   velocity: number
+  voice: number
 }
 
 export interface Mozart {
@@ -25,6 +26,7 @@ export interface Mozart {
   noteCount(): number
   addNote(pitch: number, startTick: number, durationTicks: number): void
   addNoteWithVelocity(pitch: number, startTick: number, durationTicks: number, velocity: number): void
+  addNoteWithVoice(pitch: number, startTick: number, durationTicks: number, velocity: number, voice: number): void
   removeNote(index: number): boolean
   clearNotes(): void
   getNotesJson(): string

@@ -72,10 +72,58 @@ export class AudioEngine {
     midi: number,
     velocity: number = 100,
     duration: number = 0.5,
-    startTime?: number
+    startTime?: number,
+    voice: number = 0
   ): void {
     const frequency = this.midiToFrequency(midi)
-    this.playSineNote(frequency, velocity, duration, startTime)
+    this.playNote(frequency, velocity, duration, startTime, voice)
+  }
+
+  // Play a note with voice-specific timbre
+  playNote(
+    frequency: number,
+    velocity: number = 100,
+    duration: number = 0.5,
+    startTime?: number,
+    voice: number = 0
+  ): void {
+    if (!this.ctx || !this.masterGain) return
+
+    const start = startTime ?? this.ctx.currentTime
+    const gain = this.ctx.createGain()
+    const osc = this.ctx.createOscillator()
+
+    // Velocity scaling (0-127 to 0-1)
+    const amp = (velocity / 127) * 0.5
+
+    // Different oscillator types for different voices
+    const oscillatorTypes: OscillatorType[] = ['sine', 'triangle', 'square', 'sawtooth']
+    osc.type = oscillatorTypes[voice % oscillatorTypes.length]
+
+    // Slightly detune harmony voices for richer sound
+    if (voice > 0) {
+      osc.detune.value = voice * 5 // slight detune per voice
+    }
+
+    osc.frequency.value = frequency
+
+    // ADSR envelope (slightly different per voice)
+    const attack = voice === 0 ? 0.01 : 0.02
+    const decay = 0.1
+    const sustain = voice === 0 ? 0.7 : 0.5
+    const release = 0.15
+
+    gain.gain.setValueAtTime(0, start)
+    gain.gain.linearRampToValueAtTime(amp, start + attack)
+    gain.gain.linearRampToValueAtTime(amp * sustain, start + attack + decay)
+    gain.gain.setValueAtTime(amp * sustain, start + duration - release)
+    gain.gain.linearRampToValueAtTime(0, start + duration)
+
+    osc.connect(gain)
+    gain.connect(this.masterGain)
+
+    osc.start(start)
+    osc.stop(start + duration + 0.01)
   }
 
   // Start a note (for sustained playback)

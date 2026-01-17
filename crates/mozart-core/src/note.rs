@@ -159,6 +159,9 @@ pub struct Note {
     pub duration_ticks: u32,
     /// Velocity (0-127, default 100)
     pub velocity: u8,
+    /// Voice/layer (0=main melody, 1+=harmony voices)
+    #[serde(default)]
+    pub voice: u8,
 }
 
 impl Note {
@@ -169,6 +172,7 @@ impl Note {
             start_tick,
             duration_ticks,
             velocity: 100,
+            voice: 0,
         }
     }
 
@@ -179,6 +183,18 @@ impl Note {
             start_tick,
             duration_ticks,
             velocity: velocity.min(127),
+            voice: 0,
+        }
+    }
+
+    /// Create a note with specific velocity and voice
+    pub fn with_voice(pitch: u8, start_tick: u32, duration_ticks: u32, velocity: u8, voice: u8) -> Self {
+        Note {
+            pitch,
+            start_tick,
+            duration_ticks,
+            velocity: velocity.min(127),
+            voice,
         }
     }
 
@@ -189,6 +205,7 @@ impl Note {
             start_tick,
             duration_ticks: duration.ticks(),
             velocity: 100,
+            voice: 0,
         }
     }
 

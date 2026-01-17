@@ -306,16 +306,30 @@ export const useMozartStore = create<MozartState>((set, get) => ({
     if (!mozart) return
 
     try {
-      // Save original notes if keeping them
-      const originalNotes = keepOriginal ? [...notes] : []
-
-      mozart.transposeChromatic(semitones)
-
-      // Add back original notes
       if (keepOriginal) {
+        // Save original notes
+        const originalNotes = [...notes]
+
+        // Transpose
+        mozart.transposeChromatic(semitones)
+
+        // Get transposed notes
+        const transposedNotes: Note[] = JSON.parse(mozart.getNotesJson())
+
+        // Clear and rebuild with voices
+        mozart.clearNotes()
+
+        // Add original notes as voice 0 (main melody)
         for (const note of originalNotes) {
-          mozart.addNoteWithVelocity(note.pitch, note.start_tick, note.duration_ticks, note.velocity)
+          mozart.addNoteWithVoice(note.pitch, note.start_tick, note.duration_ticks, note.velocity, 0)
         }
+
+        // Add transposed notes as voice 1 (harmony)
+        for (const note of transposedNotes) {
+          mozart.addNoteWithVoice(note.pitch, note.start_tick, note.duration_ticks, note.velocity, 1)
+        }
+      } else {
+        mozart.transposeChromatic(semitones)
       }
 
       get().syncFromWasm()
@@ -329,16 +343,30 @@ export const useMozartStore = create<MozartState>((set, get) => ({
     if (!mozart) return
 
     try {
-      // Save original notes if keeping them
-      const originalNotes = keepOriginal ? [...notes] : []
-
-      mozart.transposeDiatonic(degrees)
-
-      // Add back original notes
       if (keepOriginal) {
+        // Save original notes
+        const originalNotes = [...notes]
+
+        // Transpose
+        mozart.transposeDiatonic(degrees)
+
+        // Get transposed notes
+        const transposedNotes: Note[] = JSON.parse(mozart.getNotesJson())
+
+        // Clear and rebuild with voices
+        mozart.clearNotes()
+
+        // Add original notes as voice 0 (main melody)
         for (const note of originalNotes) {
-          mozart.addNoteWithVelocity(note.pitch, note.start_tick, note.duration_ticks, note.velocity)
+          mozart.addNoteWithVoice(note.pitch, note.start_tick, note.duration_ticks, note.velocity, 0)
         }
+
+        // Add transposed notes as voice 1 (harmony)
+        for (const note of transposedNotes) {
+          mozart.addNoteWithVoice(note.pitch, note.start_tick, note.duration_ticks, note.velocity, 1)
+        }
+      } else {
+        mozart.transposeDiatonic(degrees)
       }
 
       get().syncFromWasm()
@@ -352,16 +380,30 @@ export const useMozartStore = create<MozartState>((set, get) => ({
     if (!mozart) return
 
     try {
-      // Save original notes if keeping them
-      const originalNotes = keepOriginal ? [...notes] : []
-
-      mozart.invert(pivot)
-
-      // Add back original notes
       if (keepOriginal) {
+        // Save original notes
+        const originalNotes = [...notes]
+
+        // Invert
+        mozart.invert(pivot)
+
+        // Get inverted notes
+        const invertedNotes: Note[] = JSON.parse(mozart.getNotesJson())
+
+        // Clear and rebuild with voices
+        mozart.clearNotes()
+
+        // Add original notes as voice 0 (main melody)
         for (const note of originalNotes) {
-          mozart.addNoteWithVelocity(note.pitch, note.start_tick, note.duration_ticks, note.velocity)
+          mozart.addNoteWithVoice(note.pitch, note.start_tick, note.duration_ticks, note.velocity, 0)
         }
+
+        // Add inverted notes as voice 1 (harmony)
+        for (const note of invertedNotes) {
+          mozart.addNoteWithVoice(note.pitch, note.start_tick, note.duration_ticks, note.velocity, 1)
+        }
+      } else {
+        mozart.invert(pivot)
       }
 
       get().syncFromWasm()

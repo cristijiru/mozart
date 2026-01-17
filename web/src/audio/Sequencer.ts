@@ -161,7 +161,8 @@ export class Sequencer {
         note.pitch,
         note.velocity,
         noteDuration,
-        noteStartTime
+        noteStartTime,
+        note.voice ?? 0
       )
 
       this.scheduledNotes.add(i)
