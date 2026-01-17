@@ -12,11 +12,10 @@ pub fn TextInput() -> impl IntoView {
     let parse_error = RwSignal::new(None::<String>);
 
     // Load current melody text on mount
-    let state_clone = state.clone();
+    let state_effect = state.clone();
     Effect::new(move || {
-        let _ = state_clone.notes.get(); // Subscribe to notes changes
-        let state_clone = state_clone.clone();
-        leptos::spawn::spawn_local(async move {
+        let _ = state_effect.notes.get(); // Subscribe to notes changes
+        leptos::task::spawn_local(async move {
             match tauri::get_melody_text().await {
                 Ok(text) => text_value.set(text),
                 Err(e) => web_sys::console::error_1(&format!("Failed to get melody text: {}", e).into()),
@@ -24,6 +23,7 @@ pub fn TextInput() -> impl IntoView {
         });
     });
 
+    let state_parse = state.clone();
     let on_parse = move |_| {
         let text = text_value.get();
         if text.trim().is_empty() {
@@ -33,8 +33,8 @@ pub fn TextInput() -> impl IntoView {
         is_loading.set(true);
         parse_error.set(None);
 
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state = state_parse.clone();
+        leptos::task::spawn_local(async move {
             match tauri::parse_text_melody(&text).await {
                 Ok(()) => {
                     state.refresh().await;
@@ -48,9 +48,10 @@ pub fn TextInput() -> impl IntoView {
         });
     };
 
+    let state_clear = state.clone();
     let on_clear = move |_| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state = state_clear.clone();
+        leptos::task::spawn_local(async move {
             if let Err(e) = tauri::clear_notes().await {
                 state.show_error(format!("Failed to clear notes: {}", e));
             } else {
@@ -136,10 +137,13 @@ pub fn TextInput() -> impl IntoView {
             <div class="note-preview">
                 <h4>"Current Notes"</h4>
                 <div class="note-count">
-                    {move || {
-                        let count = state.notes.get().len();
-                        format!("{} note{}", count, if count == 1 { "" } else { "s" })
-                    }}
+                    {
+                        let state = state.clone();
+                        move || {
+                            let count = state.notes.get().len();
+                            format!("{} note{}", count, if count == 1 { "" } else { "s" })
+                        }
+                    }
                 </div>
             </div>
         </div>

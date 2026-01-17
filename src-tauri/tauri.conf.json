@@ -6,8 +6,8 @@
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
-    "beforeDevCommand": "cd .. && trunk serve --port 1420",
-    "beforeBuildCommand": "cd .. && trunk build"
+    "beforeDevCommand": "trunk serve --port 1420",
+    "beforeBuildCommand": "trunk build"
   },
   "app": {
     "withGlobalTauri": true,

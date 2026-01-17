@@ -2,14 +2,13 @@
 //!
 //! Main entry point for the Tauri app with commands for the frontend
 
-use mozart_audio::{AudioEngine, Instrument, PlaybackState, TransportCommand};
 use mozart_core::{
     midi::export_to_midi,
     note::{format_melody, parse_melody, Note},
     pitch::PitchClass,
     scale::{Scale, ScaleType},
     song::Song,
-    time::{AccentLevel, AccentPattern, TimeSignature},
+    time::{AccentPattern, TimeSignature},
     transpose::{transpose_notes, TransposeMode},
 };
 use parking_lot::RwLock;
@@ -20,11 +19,10 @@ use tauri::State;
 use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 /// Application state managed by Tauri
+/// Note: Audio is handled separately due to thread-safety requirements
 pub struct AppState {
     /// Current song being edited
     song: RwLock<Song>,
-    /// Audio engine for playback
-    audio: RwLock<Option<AudioEngine>>,
     /// Current file path (if saved)
     file_path: RwLock<Option<PathBuf>>,
     /// Undo history
@@ -37,7 +35,6 @@ impl Default for AppState {
     fn default() -> Self {
         AppState {
             song: RwLock::new(Song::new()),
-            audio: RwLock::new(AudioEngine::new().ok()),
             file_path: RwLock::new(None),
             undo_stack: RwLock::new(Vec::new()),
             redo_stack: RwLock::new(Vec::new()),
@@ -107,22 +104,12 @@ fn set_tempo(state: State<Arc<AppState>>, tempo: u16) {
     let tempo = tempo.clamp(20, 300);
     tracing::debug!("Setting tempo: {} BPM", tempo);
     state.song.write().set_tempo(tempo);
-
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.set_tempo(tempo);
-    }
 }
 
 #[tauri::command]
 fn set_time_signature(state: State<Arc<AppState>>, numerator: u8, denominator: u8) -> Result<(), String> {
     tracing::debug!("Setting time signature: {}/{}", numerator, denominator);
-
     let ts = TimeSignature::new(numerator, denominator).map_err(|e| e.to_string())?;
-
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.set_time_signature(ts.clone());
-    }
-
     state.song.write().set_time_signature(ts);
     Ok(())
 }
@@ -174,10 +161,6 @@ fn set_accents(state: State<Arc<AppState>>, accents: Vec<u8>) -> Result<(), Stri
 
     let pattern = AccentPattern::from_values(&accents);
     song.settings.time_signature.set_accents(pattern);
-
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.set_time_signature(song.settings.time_signature.clone());
-    }
 
     Ok(())
 }
@@ -265,7 +248,7 @@ fn get_melody_text(state: State<Arc<AppState>>) -> String {
 // Transposition Commands
 // ============================================================================
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Serialize)]
 #[serde(tag = "type")]
 enum TransposeRequest {
     Chromatic { semitones: i8 },
@@ -353,12 +336,6 @@ fn load_song(state: State<Arc<AppState>>, path: String) -> Result<SongInfo, Stri
     let path = PathBuf::from(&path);
     let song = Song::load(&path).map_err(|e| e.to_string())?;
 
-    // Update audio engine
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.set_tempo(song.settings.tempo);
-        audio.set_time_signature(song.settings.time_signature.clone());
-    }
-
     let info = SongInfo {
         title: song.metadata.title.clone(),
         tempo: song.settings.tempo,
@@ -416,108 +393,65 @@ fn load_song_json(state: State<Arc<AppState>>, json: String) -> Result<SongInfo,
 }
 
 // ============================================================================
-// Audio Commands
+// Audio Commands (stubbed - audio handled separately due to thread-safety)
 // ============================================================================
 
 #[tauri::command]
-fn play(state: State<Arc<AppState>>) {
-    tracing::debug!("Play");
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.command(TransportCommand::Play);
-    }
+fn play(_state: State<Arc<AppState>>) {
+    tracing::debug!("Play (audio not yet implemented in Tauri)");
 }
 
 #[tauri::command]
-fn pause(state: State<Arc<AppState>>) {
-    tracing::debug!("Pause");
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.command(TransportCommand::Pause);
-    }
+fn pause(_state: State<Arc<AppState>>) {
+    tracing::debug!("Pause (audio not yet implemented in Tauri)");
 }
 
 #[tauri::command]
-fn stop(state: State<Arc<AppState>>) {
-    tracing::debug!("Stop");
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.command(TransportCommand::Stop);
-    }
+fn stop(_state: State<Arc<AppState>>) {
+    tracing::debug!("Stop (audio not yet implemented in Tauri)");
 }
 
 #[tauri::command]
-fn get_playback_state(state: State<Arc<AppState>>) -> String {
-    if let Some(audio) = state.audio.read().as_ref() {
-        match audio.state() {
-            PlaybackState::Stopped => "stopped",
-            PlaybackState::Playing => "playing",
-            PlaybackState::Paused => "paused",
-        }
-        .to_string()
-    } else {
-        "stopped".to_string()
-    }
+fn get_playback_state(_state: State<Arc<AppState>>) -> String {
+    "stopped".to_string()
 }
 
 #[tauri::command]
-fn get_playback_position(state: State<Arc<AppState>>) -> u32 {
-    state
-        .audio
-        .read()
-        .as_ref()
-        .map(|a| a.position())
-        .unwrap_or(0)
+fn get_playback_position(_state: State<Arc<AppState>>) -> u32 {
+    0
 }
 
 #[tauri::command]
-fn set_playback_position(state: State<Arc<AppState>>, tick: u32) {
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.command(TransportCommand::SetPosition(tick));
-    }
+fn set_playback_position(_state: State<Arc<AppState>>, _tick: u32) {
+    tracing::debug!("Set playback position (audio not yet implemented in Tauri)");
 }
 
 #[tauri::command]
-fn toggle_metronome(state: State<Arc<AppState>>) {
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.command(TransportCommand::ToggleMetronome);
-    }
+fn toggle_metronome(_state: State<Arc<AppState>>) {
+    tracing::debug!("Toggle metronome (audio not yet implemented in Tauri)");
 }
 
 #[tauri::command]
-fn get_metronome_enabled(state: State<Arc<AppState>>) -> bool {
-    state
-        .audio
-        .read()
-        .as_ref()
-        .map(|a| a.metronome_enabled())
-        .unwrap_or(false)
+fn get_metronome_enabled(_state: State<Arc<AppState>>) -> bool {
+    false
 }
 
 #[tauri::command]
-fn set_loop(state: State<Arc<AppState>>, start: Option<u32>, end: Option<u32>) {
-    if let Some(audio) = state.audio.read().as_ref() {
-        let range = start.zip(end);
-        audio.command(TransportCommand::SetLoop(range));
-    }
+fn set_loop(_state: State<Arc<AppState>>, _start: Option<u32>, _end: Option<u32>) {
+    tracing::debug!("Set loop (audio not yet implemented in Tauri)");
 }
 
 #[tauri::command]
-fn play_note_preview(state: State<Arc<AppState>>, pitch: u8, velocity: u8, duration_ms: u64) {
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.play_note(pitch, velocity, duration_ms);
-    }
+fn play_note_preview(_state: State<Arc<AppState>>, pitch: u8, velocity: u8, duration_ms: u64) {
+    tracing::debug!(
+        "Play note preview: pitch={}, velocity={}, duration={}ms (audio not yet implemented)",
+        pitch, velocity, duration_ms
+    );
 }
 
 #[tauri::command]
-fn set_instrument(state: State<Arc<AppState>>, instrument: String) {
-    let instrument = match instrument.to_lowercase().as_str() {
-        "piano" => Instrument::Piano,
-        "strings" => Instrument::Strings,
-        "synth" => Instrument::Synth,
-        _ => Instrument::Piano,
-    };
-
-    if let Some(audio) = state.audio.read().as_ref() {
-        audio.set_instrument(instrument);
-    }
+fn set_instrument(_state: State<Arc<AppState>>, instrument: String) {
+    tracing::debug!("Set instrument: {} (audio not yet implemented in Tauri)", instrument);
 }
 
 // ============================================================================
@@ -601,7 +535,7 @@ fn get_scale_notes(root: String, scale_type: String) -> Result<Vec<String>, Stri
 
 fn init_logging() {
     let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("mozart=debug,mozart_core=debug,mozart_audio=info"));
+        .unwrap_or_else(|_| EnvFilter::new("mozart=debug,mozart_core=debug"));
 
     tracing_subscriber::registry()
         .with(fmt::layer().with_target(true).with_file(true).with_line_number(true))
@@ -647,7 +581,7 @@ pub fn run() {
             export_midi,
             get_song_json,
             load_song_json,
-            // Audio
+            // Audio (stubbed)
             play,
             pause,
             stop,

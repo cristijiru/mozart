@@ -3,6 +3,7 @@
 use crate::app::AppState;
 use crate::tauri::{self, NoteData};
 use leptos::prelude::*;
+use wasm_bindgen::JsCast;
 use web_sys::{HtmlCanvasElement, MouseEvent};
 
 /// Piano roll constants
@@ -30,8 +31,9 @@ pub fn PianoRoll() -> impl IntoView {
     let canvas_height = RwSignal::new(400.0);
 
     // Redraw canvas when notes change
+    let state_effect = state.clone();
     Effect::new(move || {
-        let notes = state.notes.get();
+        let notes = state_effect.notes.get();
         let scroll_x = scroll_x.get();
         let scroll_y = scroll_y.get();
         let width = canvas_width.get();
@@ -44,6 +46,7 @@ pub fn PianoRoll() -> impl IntoView {
     });
 
     // Handle canvas click
+    let state_click = state.clone();
     let on_click = move |e: MouseEvent| {
         let canvas = canvas_ref.get().unwrap();
         let rect = canvas.get_bounding_client_rect();
@@ -54,8 +57,7 @@ pub fn PianoRoll() -> impl IntoView {
         if x < PIANO_KEY_WIDTH {
             let pitch = y_to_pitch(y + scroll_y.get());
             if pitch >= MIN_PITCH && pitch <= MAX_PITCH {
-                let state_clone = state.clone();
-                leptos::spawn::spawn_local(async move {
+                leptos::task::spawn_local(async move {
                     let _ = tauri::play_note_preview(pitch, 100, 500).await;
                 });
             }
@@ -63,7 +65,7 @@ pub fn PianoRoll() -> impl IntoView {
         }
 
         // Check if clicking on an existing note
-        let notes = state.notes.get();
+        let notes = state_click.notes.get();
         let click_tick = x_to_tick(x - PIANO_KEY_WIDTH + scroll_x.get());
         let click_pitch = y_to_pitch(y + scroll_y.get());
 
@@ -86,8 +88,8 @@ pub fn PianoRoll() -> impl IntoView {
             velocity: 100,
         };
 
-        let state_clone = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state_clone = state_click.clone();
+        leptos::task::spawn_local(async move {
             if let Err(e) = tauri::add_note(new_note).await {
                 state_clone.show_error(format!("Failed to add note: {}", e));
             } else {
@@ -99,11 +101,12 @@ pub fn PianoRoll() -> impl IntoView {
     };
 
     // Handle delete key
+    let state_keydown = state.clone();
     let on_keydown = move |e: web_sys::KeyboardEvent| {
         if e.key() == "Delete" || e.key() == "Backspace" {
             if let Some(idx) = selected_note.get() {
-                let state_clone = state.clone();
-                leptos::spawn::spawn_local(async move {
+                let state_clone = state_keydown.clone();
+                leptos::task::spawn_local(async move {
                     if let Err(e) = tauri::remove_note(idx).await {
                         state_clone.show_error(format!("Failed to remove note: {}", e));
                     } else {
@@ -143,17 +146,20 @@ pub fn PianoRoll() -> impl IntoView {
             </div>
 
             <div class="note-info">
-                {move || selected_note.get().map(|idx| {
-                    let notes = state.notes.get();
-                    if let Some(note) = notes.get(idx) {
-                        let pitch_name = pitch_to_name(note.pitch);
-                        view! {
-                            <span>"Selected: "{pitch_name}" at tick "{note.start_tick}</span>
-                        }.into_any()
-                    } else {
-                        view! { <span></span> }.into_any()
-                    }
-                })}
+                {
+                    let state = state.clone();
+                    move || selected_note.get().map(|idx| {
+                        let notes = state.notes.get();
+                        if let Some(note) = notes.get(idx) {
+                            let pitch_name = pitch_to_name(note.pitch);
+                            view! {
+                                <span>"Selected: "{pitch_name}" at tick "{note.start_tick}</span>
+                            }.into_any()
+                        } else {
+                            view! { <span></span> }.into_any()
+                        }
+                    })
+                }
             </div>
         </div>
     }

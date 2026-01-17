@@ -20,8 +20,8 @@ tauri-build = { version = "2.0", features = [] }
 
 [dependencies]
 mozart-core = { path = "../crates/mozart-core" }
-mozart-audio = { path = "../crates/mozart-audio" }
-tauri = { version = "2.2", features = ["macos-private-api"] }
+# mozart-audio removed temporarily - thread-safety issues with rodio/cpal
+tauri = { version = "2.2", features = [] }
 tauri-plugin-shell = "2.0"
 serde.workspace = true
 serde_json.workspace = true

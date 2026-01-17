@@ -72,7 +72,7 @@ pub fn App() -> impl IntoView {
 
     // Initial data fetch
     let state_clone = state.clone();
-    leptos::spawn::spawn_local(async move {
+    leptos::task::spawn_local(async move {
         state_clone.refresh().await;
     });
 
@@ -100,12 +100,21 @@ pub fn App() -> impl IntoView {
             <TabBar />
 
             // Error toast
-            {move || state.error_message.get().map(|msg| view! {
-                <div class="error-toast" on:click=move |_| state.clear_error()>
-                    <span class="error-icon">"!"</span>
-                    <span class="error-text">{msg}</span>
-                </div>
-            })}
+            {
+                let state = state.clone();
+                move || {
+                    let state = state.clone();
+                    state.error_message.get().map(|msg| {
+                        let state = state.clone();
+                        view! {
+                            <div class="error-toast" on:click=move |_| state.clear_error()>
+                                <span class="error-icon">"!"</span>
+                                <span class="error-text">{msg}</span>
+                            </div>
+                        }
+                    })
+                }
+            }
         </div>
     }
 }

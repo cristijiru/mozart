@@ -3,6 +3,7 @@
 use crate::app::AppState;
 use crate::tauri;
 use leptos::prelude::*;
+use std::rc::Rc;
 
 #[component]
 pub fn Settings() -> impl IntoView {
@@ -29,9 +30,9 @@ pub fn Settings() -> impl IntoView {
     let instruments = ["Piano", "Strings", "Synth"];
 
     // Load current settings
-    let state_clone = state.clone();
+    let state_effect = state.clone();
     Effect::new(move || {
-        if let Some(info) = state_clone.song_info.get() {
+        if let Some(info) = state_effect.song_info.get() {
             tempo.set(info.tempo);
             title.set(info.title);
 
@@ -44,21 +45,24 @@ pub fn Settings() -> impl IntoView {
         }
     });
 
-    let on_tempo_change = move |new_tempo: u16| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+    // Use Rc for closures that need to be cloned in iterators
+    let state_tempo = state.clone();
+    let on_tempo_change: Rc<dyn Fn(u16)> = Rc::new(move |new_tempo: u16| {
+        let state = state_tempo.clone();
+        leptos::task::spawn_local(async move {
             if let Err(e) = tauri::set_tempo(new_tempo).await {
                 state.show_error(format!("Failed to set tempo: {}", e));
             } else {
                 state.refresh().await;
             }
         });
-    };
+    });
 
+    let state_title = state.clone();
     let on_title_change = move || {
         let new_title = title.get();
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state = state_title.clone();
+        leptos::task::spawn_local(async move {
             if let Err(e) = tauri::set_title(&new_title).await {
                 state.show_error(format!("Failed to set title: {}", e));
             } else {
@@ -67,11 +71,12 @@ pub fn Settings() -> impl IntoView {
         });
     };
 
+    let state_key = state.clone();
     let on_key_change = move || {
         let root = key_root.get();
         let scale = key_scale.get();
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state = state_key.clone();
+        leptos::task::spawn_local(async move {
             if let Err(e) = tauri::set_key(&root, &scale).await {
                 state.show_error(format!("Failed to set key: {}", e));
             } else {
@@ -80,24 +85,23 @@ pub fn Settings() -> impl IntoView {
         });
     };
 
-    let on_instrument_change = move |inst: String| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+    let state_instrument = state.clone();
+    let on_instrument_change: Rc<dyn Fn(String)> = Rc::new(move |inst: String| {
+        let state = state_instrument.clone();
+        leptos::task::spawn_local(async move {
             if let Err(e) = tauri::set_instrument(&inst).await {
                 state.show_error(format!("Failed to set instrument: {}", e));
             }
         });
-    };
+    });
 
+    let state_save = state.clone();
     let on_save = move |_| {
-        // For now, just get JSON and log it
-        // In a real app, we'd use a file dialog
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state = state_save.clone();
+        leptos::task::spawn_local(async move {
             match tauri::get_song_json().await {
                 Ok(json) => {
                     web_sys::console::log_1(&format!("Song JSON:\n{}", json).into());
-                    // Could copy to clipboard or show in modal
                 }
                 Err(e) => state.show_error(format!("Failed to get song JSON: {}", e)),
             }
@@ -105,13 +109,17 @@ pub fn Settings() -> impl IntoView {
     };
 
     let on_export_midi = move |_| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
-            // For now, log that export was requested
-            // In a real app, we'd use a file dialog
+        leptos::task::spawn_local(async move {
             web_sys::console::log_1(&"MIDI export requested - needs file dialog".into());
         });
     };
+
+    // Clone Rc for use in view
+    let on_tempo_change_1 = on_tempo_change.clone();
+    let on_tempo_change_2 = on_tempo_change.clone();
+    let on_tempo_change_3 = on_tempo_change.clone();
+    let on_tempo_change_4 = on_tempo_change.clone();
+    let on_key_change_1 = on_key_change.clone();
 
     view! {
         <div class="settings-panel">
@@ -136,7 +144,7 @@ pub fn Settings() -> impl IntoView {
                         on:click=move |_| {
                             let new_tempo = (tempo.get() - 5).max(20);
                             tempo.set(new_tempo);
-                            on_tempo_change(new_tempo);
+                            on_tempo_change_1(new_tempo);
                         }
                     >"-5"</button>
                     <button
@@ -144,7 +152,7 @@ pub fn Settings() -> impl IntoView {
                         on:click=move |_| {
                             let new_tempo = (tempo.get() - 1).max(20);
                             tempo.set(new_tempo);
-                            on_tempo_change(new_tempo);
+                            on_tempo_change_2(new_tempo);
                         }
                     >"-"</button>
 
@@ -155,7 +163,7 @@ pub fn Settings() -> impl IntoView {
                         on:click=move |_| {
                             let new_tempo = (tempo.get() + 1).min(300);
                             tempo.set(new_tempo);
-                            on_tempo_change(new_tempo);
+                            on_tempo_change_3(new_tempo);
                         }
                     >"+"</button>
                     <button
@@ -163,20 +171,21 @@ pub fn Settings() -> impl IntoView {
                         on:click=move |_| {
                             let new_tempo = (tempo.get() + 5).min(300);
                             tempo.set(new_tempo);
-                            on_tempo_change(new_tempo);
+                            on_tempo_change_4(new_tempo);
                         }
                     >"+5"</button>
                 </div>
 
                 <div class="tempo-presets">
                     {[60, 80, 100, 120, 140, 160].into_iter().map(|t| {
+                        let on_tempo = on_tempo_change.clone();
                         view! {
                             <button
                                 class="preset-btn"
                                 class:active=move || tempo.get() == t
                                 on:click=move |_| {
                                     tempo.set(t);
-                                    on_tempo_change(t);
+                                    on_tempo(t);
                                 }
                             >
                                 {t}
@@ -207,7 +216,7 @@ pub fn Settings() -> impl IntoView {
                         class="scale-select"
                         on:change=move |e| {
                             key_scale.set(event_target_value(&e));
-                            on_key_change();
+                            on_key_change_1();
                         }
                     >
                         {scale_types.iter().map(|&st| view! {
@@ -224,13 +233,14 @@ pub fn Settings() -> impl IntoView {
                 <div class="instrument-selector">
                     {instruments.iter().map(|&inst| {
                         let inst_string = inst.to_string();
+                        let on_instrument = on_instrument_change.clone();
                         view! {
                             <button
                                 class="instrument-btn"
                                 class:active=move || instrument.get() == inst
                                 on:click=move |_| {
                                     instrument.set(inst.to_string());
-                                    on_instrument_change(inst_string.clone());
+                                    on_instrument(inst_string.clone());
                                 }
                             >
                                 {inst}
@@ -257,22 +267,25 @@ pub fn Settings() -> impl IntoView {
 
             <div class="song-stats">
                 <h4>"Song Statistics"</h4>
-                {move || state.song_info.get().map(|info| view! {
-                    <div class="stat-grid">
-                        <div class="stat">
-                            <span class="stat-label">"Notes"</span>
-                            <span class="stat-value">{info.note_count}</span>
+                {
+                    let state = state.clone();
+                    move || state.song_info.get().map(|info| view! {
+                        <div class="stat-grid">
+                            <div class="stat">
+                                <span class="stat-label">"Notes"</span>
+                                <span class="stat-value">{info.note_count}</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">"Duration"</span>
+                                <span class="stat-value">{format!("{:.1}s", info.duration_seconds)}</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-label">"Measures"</span>
+                                <span class="stat-value">{info.measure_count}</span>
+                            </div>
                         </div>
-                        <div class="stat">
-                            <span class="stat-label">"Duration"</span>
-                            <span class="stat-value">{format!("{:.1}s", info.duration_seconds)}</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-label">"Measures"</span>
-                            <span class="stat-value">{info.measure_count}</span>
-                        </div>
-                    </div>
-                })}
+                    })
+                }
             </div>
         </div>
     }

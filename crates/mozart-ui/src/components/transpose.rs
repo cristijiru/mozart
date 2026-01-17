@@ -104,7 +104,7 @@ pub fn TransposePanel() -> impl IntoView {
         };
 
         let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        leptos::task::spawn_local(async move {
             match tauri::transpose(request).await {
                 Ok(()) => {
                     state.refresh().await;

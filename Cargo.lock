@@ -2608,7 +2608,6 @@ dependencies = [
 name = "mozart"
 version = "0.1.0"
 dependencies = [
- "mozart-audio",
  "mozart-core",
  "parking_lot",
  "serde",

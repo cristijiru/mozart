@@ -13,10 +13,8 @@ pub fn AccentEditor() -> impl IntoView {
     let denominator = RwSignal::new(4u8);
 
     // Load current accents
-    let state_clone = state.clone();
     Effect::new(move || {
-        let _ = state_clone.song_info.get(); // Subscribe to changes
-        leptos::spawn::spawn_local(async move {
+        leptos::task::spawn_local(async move {
             match tauri::get_accents().await {
                 Ok(info) => {
                     accents.set(info.accents);
@@ -30,36 +28,6 @@ pub fn AccentEditor() -> impl IntoView {
         });
     });
 
-    let on_cycle_accent = move |beat: usize| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
-            if let Err(e) = tauri::cycle_accent(beat).await {
-                state.show_error(format!("Failed to cycle accent: {}", e));
-            }
-            // Refresh accents
-            if let Ok(info) = tauri::get_accents().await {
-                accents.set(info.accents);
-            }
-        });
-    };
-
-    let on_change_time_sig = move |num: u8, denom: u8| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
-            if let Err(e) = tauri::set_time_signature(num, denom).await {
-                state.show_error(format!("Failed to set time signature: {}", e));
-            } else {
-                state.refresh().await;
-                // Refresh accents
-                if let Ok(info) = tauri::get_accents().await {
-                    accents.set(info.accents);
-                    numerator.set(info.numerator);
-                    denominator.set(info.denominator);
-                }
-            }
-        });
-    };
-
     let accent_class = |level: u8| match level {
         3 => "accent strong",
         2 => "accent medium",
@@ -72,6 +40,81 @@ pub fn AccentEditor() -> impl IntoView {
         _ => ".",
     };
 
+    // Create individual handlers for time signature changes
+    let state_ts1 = state.clone();
+    let on_ts_dec = move |_| {
+        let num = (numerator.get() - 1).max(2);
+        let denom = denominator.get();
+        let state = state_ts1.clone();
+        leptos::task::spawn_local(async move {
+            if let Err(e) = tauri::set_time_signature(num, denom).await {
+                state.show_error(format!("Failed to set time signature: {}", e));
+            } else {
+                state.refresh().await;
+                if let Ok(info) = tauri::get_accents().await {
+                    accents.set(info.accents);
+                    numerator.set(info.numerator);
+                    denominator.set(info.denominator);
+                }
+            }
+        });
+    };
+
+    let state_ts2 = state.clone();
+    let on_ts_inc = move |_| {
+        let num = (numerator.get() + 1).min(15);
+        let denom = denominator.get();
+        let state = state_ts2.clone();
+        leptos::task::spawn_local(async move {
+            if let Err(e) = tauri::set_time_signature(num, denom).await {
+                state.show_error(format!("Failed to set time signature: {}", e));
+            } else {
+                state.refresh().await;
+                if let Ok(info) = tauri::get_accents().await {
+                    accents.set(info.accents);
+                    numerator.set(info.numerator);
+                    denominator.set(info.denominator);
+                }
+            }
+        });
+    };
+
+    let state_ts3 = state.clone();
+    let on_ts_4 = move |_| {
+        let num = numerator.get();
+        let state = state_ts3.clone();
+        leptos::task::spawn_local(async move {
+            if let Err(e) = tauri::set_time_signature(num, 4).await {
+                state.show_error(format!("Failed to set time signature: {}", e));
+            } else {
+                state.refresh().await;
+                if let Ok(info) = tauri::get_accents().await {
+                    accents.set(info.accents);
+                    numerator.set(info.numerator);
+                    denominator.set(info.denominator);
+                }
+            }
+        });
+    };
+
+    let state_ts4 = state.clone();
+    let on_ts_8 = move |_| {
+        let num = numerator.get();
+        let state = state_ts4.clone();
+        leptos::task::spawn_local(async move {
+            if let Err(e) = tauri::set_time_signature(num, 8).await {
+                state.show_error(format!("Failed to set time signature: {}", e));
+            } else {
+                state.refresh().await;
+                if let Ok(info) = tauri::get_accents().await {
+                    accents.set(info.accents);
+                    numerator.set(info.numerator);
+                    denominator.set(info.denominator);
+                }
+            }
+        });
+    };
+
     view! {
         <div class="accent-editor">
             <h2>"Time Signature & Accents"</h2>
@@ -80,19 +123,9 @@ pub fn AccentEditor() -> impl IntoView {
                 <div class="time-sig-control">
                     <label>"Beats per measure"</label>
                     <div class="number-input">
-                        <button
-                            on:click=move |_| {
-                                let num = (numerator.get() - 1).max(2);
-                                on_change_time_sig(num, denominator.get());
-                            }
-                        >"-"</button>
+                        <button on:click=on_ts_dec>"-"</button>
                         <span class="number-value">{move || numerator.get()}</span>
-                        <button
-                            on:click=move |_| {
-                                let num = (numerator.get() + 1).min(15);
-                                on_change_time_sig(num, denominator.get());
-                            }
-                        >"+"</button>
+                        <button on:click=on_ts_inc>"+"</button>
                     </div>
                 </div>
 
@@ -107,11 +140,11 @@ pub fn AccentEditor() -> impl IntoView {
                     <div class="denom-buttons">
                         <button
                             class:active=move || denominator.get() == 4
-                            on:click=move |_| on_change_time_sig(numerator.get(), 4)
+                            on:click=on_ts_4
                         >"4"</button>
                         <button
                             class:active=move || denominator.get() == 8
-                            on:click=move |_| on_change_time_sig(numerator.get(), 8)
+                            on:click=on_ts_8
                         >"8"</button>
                     </div>
                 </div>
@@ -127,51 +160,68 @@ pub fn AccentEditor() -> impl IntoView {
             </div>
 
             <div class="accent-pattern">
-                {move || {
-                    let accents_val = accents.get();
-                    accents_val.into_iter().enumerate().map(|(i, level)| {
-                        let on_click = move |_| on_cycle_accent(i);
-                        view! {
-                            <button
-                                class=accent_class(level)
-                                on:click=on_click
-                                title=format!("Beat {} - Click to change", i + 1)
-                            >
-                                <span class="beat-number">{i + 1}</span>
-                                <span class="accent-symbol">{accent_symbol(level)}</span>
-                            </button>
-                        }
-                    }).collect_view()
-                }}
+                {
+                    let state = state.clone();
+                    move || {
+                        let state = state.clone();
+                        let accents_val = accents.get();
+                        accents_val.into_iter().enumerate().map(|(i, level)| {
+                            let state = state.clone();
+                            view! {
+                                <button
+                                    class=accent_class(level)
+                                    on:click=move |_| {
+                                        let state = state.clone();
+                                        leptos::task::spawn_local(async move {
+                                            if let Err(e) = tauri::cycle_accent(i).await {
+                                                state.show_error(format!("Failed to cycle accent: {}", e));
+                                            }
+                                            if let Ok(info) = tauri::get_accents().await {
+                                                accents.set(info.accents);
+                                            }
+                                        });
+                                    }
+                                    title=format!("Beat {} - Click to change", i + 1)
+                                >
+                                    <span class="beat-number">{i + 1}</span>
+                                    <span class="accent-symbol">{accent_symbol(level)}</span>
+                                </button>
+                            }
+                        }).collect_view()
+                    }
+                }
             </div>
 
             <div class="preset-patterns">
                 <h4>"Preset Patterns"</h4>
                 <div class="presets">
-                    {move || {
-                        let num = numerator.get();
-                        get_presets_for_numerator(num).into_iter().map(|(name, pattern)| {
-                            let pattern_clone = pattern.clone();
+                    {
+                        let state = state.clone();
+                        move || {
                             let state = state.clone();
-                            let on_click = move |_| {
-                                let pattern = pattern_clone.clone();
+                            let num = numerator.get();
+                            get_presets_for_numerator(num).into_iter().map(|(name, pattern)| {
+                                let pattern_clone = pattern.clone();
                                 let state = state.clone();
-                                leptos::spawn::spawn_local(async move {
-                                    if let Err(e) = tauri::set_accents(pattern).await {
-                                        state.show_error(format!("Failed to set accents: {}", e));
-                                    }
-                                    if let Ok(info) = tauri::get_accents().await {
-                                        accents.set(info.accents);
-                                    }
-                                });
-                            };
-                            view! {
-                                <button class="preset-btn" on:click=on_click>
-                                    {name}
-                                </button>
-                            }
-                        }).collect_view()
-                    }}
+                                view! {
+                                    <button class="preset-btn" on:click=move |_| {
+                                        let pattern = pattern_clone.clone();
+                                        let state = state.clone();
+                                        leptos::task::spawn_local(async move {
+                                            if let Err(e) = tauri::set_accents(pattern).await {
+                                                state.show_error(format!("Failed to set accents: {}", e));
+                                            }
+                                            if let Ok(info) = tauri::get_accents().await {
+                                                accents.set(info.accents);
+                                            }
+                                        });
+                                    }>
+                                        {name}
+                                    </button>
+                                }
+                            }).collect_view()
+                        }
+                    }
                 </div>
             </div>
         </div>

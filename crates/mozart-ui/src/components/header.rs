@@ -16,9 +16,10 @@ pub fn Header() -> impl IntoView {
             .unwrap_or_else(|| "Untitled".to_string())
     };
 
+    let state_new = state.clone();
     let on_new = move |_| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state = state_new.clone();
+        leptos::task::spawn_local(async move {
             if let Err(e) = tauri::new_song().await {
                 state.show_error(format!("Failed to create new song: {}", e));
             } else {
@@ -27,9 +28,10 @@ pub fn Header() -> impl IntoView {
         });
     };
 
+    let state_undo = state.clone();
     let on_undo = move |_| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state = state_undo.clone();
+        leptos::task::spawn_local(async move {
             match tauri::undo().await {
                 Ok(true) => state.refresh().await,
                 Ok(false) => web_sys::console::log_1(&"Nothing to undo".into()),
@@ -38,9 +40,10 @@ pub fn Header() -> impl IntoView {
         });
     };
 
+    let state_redo = state.clone();
     let on_redo = move |_| {
-        let state = state.clone();
-        leptos::spawn::spawn_local(async move {
+        let state = state_redo.clone();
+        leptos::task::spawn_local(async move {
             match tauri::redo().await {
                 Ok(true) => state.refresh().await,
                 Ok(false) => web_sys::console::log_1(&"Nothing to redo".into()),
