@@ -3,6 +3,7 @@
 //! Main entry point for the WASM frontend
 
 mod app;
+pub mod audio;
 mod components;
 mod tauri;
 

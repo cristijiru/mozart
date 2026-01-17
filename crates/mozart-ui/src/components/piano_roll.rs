@@ -1,6 +1,7 @@
 //! Piano Roll editor component
 
 use crate::app::AppState;
+use crate::audio;
 use crate::tauri::{self, NoteData};
 use leptos::prelude::*;
 use wasm_bindgen::JsCast;
@@ -50,16 +51,26 @@ pub fn PianoRoll() -> impl IntoView {
     let on_click = move |e: MouseEvent| {
         let canvas = canvas_ref.get().unwrap();
         let rect = canvas.get_bounding_client_rect();
-        let x = e.client_x() as f64 - rect.left();
-        let y = e.client_y() as f64 - rect.top();
+
+        // Get the internal canvas resolution vs displayed size
+        let canvas_internal_width = canvas.width() as f64;
+        let canvas_internal_height = canvas.height() as f64;
+        let display_width = rect.width();
+        let display_height = rect.height();
+
+        // Scale mouse coordinates to canvas internal coordinates
+        let scale_x = canvas_internal_width / display_width;
+        let scale_y = canvas_internal_height / display_height;
+
+        let x = (e.client_x() as f64 - rect.left()) * scale_x;
+        let y = (e.client_y() as f64 - rect.top()) * scale_y;
 
         // Check if clicking on piano keys (preview note)
         if x < PIANO_KEY_WIDTH {
             let pitch = y_to_pitch(y + scroll_y.get());
             if pitch >= MIN_PITCH && pitch <= MAX_PITCH {
-                leptos::task::spawn_local(async move {
-                    let _ = tauri::play_note_preview(pitch, 100, 500).await;
-                });
+                // Use Web Audio API for immediate sine wave preview
+                audio::play_sine_note(pitch, 100, 500);
             }
             return;
         }
@@ -87,6 +98,9 @@ pub fn PianoRoll() -> impl IntoView {
             duration_ticks: TICKS_PER_QUARTER, // Default quarter note
             velocity: 100,
         };
+
+        // Play audio feedback for the new note
+        audio::play_sine_note(click_pitch, 100, 300);
 
         let state_clone = state_click.clone();
         leptos::task::spawn_local(async move {
